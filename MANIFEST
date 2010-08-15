@@ -1,0 +1,13 @@
+bin/pg_prove
+bin/pg_tapgen
+Build.PL
+Changes
+lib/TAP/Parser/SourceHandler/pgTAP.pm
+MANIFEST			This list of files
+README
+t/bin/psql
+t/pod-coverage.t
+t/pod.t
+t/source.pg
+t/source_handler.t
+META.yml
