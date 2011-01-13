@@ -7,7 +7,7 @@ build_requires:
   Test::More: 0.88
 configure_requires:
   Module::Build: 0.30
-generated_by: 'Module::Build version 0.3603'
+generated_by: 'Module::Build version 0.3607'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,7 +16,7 @@ name: TAP-Parser-SourceHandler-pgTAP
 provides:
   TAP::Parser::SourceHandler::pgTAP:
     file: lib/TAP/Parser/SourceHandler/pgTAP.pm
-    version: 3.23
+    version: 3.24
 recommends:
   Test::Pod: 1.41
   Test::Pod::Coverage: 1.06
@@ -28,4 +28,4 @@ resources:
   homepage: http://search.cpan.org/dist/Tap-Parser-Sourcehandler-pgTAP/
   license: http://dev.perl.org/licenses/
   repository: http://github.com/theory/tap-parser-sourcehandler-pgtap/tree/
-version: 3.23
+version: 3.24

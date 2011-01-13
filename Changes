@@ -1,5 +1,9 @@
 Revision history for Perl extension TAP::Parser::SourceHandler::pgTAP.
 
+3.24  2011-01-13T22:26:47
+     - Added -S/--set option to pg_prove to allow the setting of psql
+       variables. Patch by Norman Yamada.
+
 3.23  2010-09-08T22:32:05
       - Disable --failures by default.
       - Enable --comments by default. This is so that failure diagnostics will

@@ -9,7 +9,7 @@ use TAP::Parser::Iterator::Process ();
 @ISA = qw(TAP::Parser::SourceHandler);
 TAP::Parser::IteratorFactory->register_handler(__PACKAGE__);
 
-our $VERSION = '3.23';
+our $VERSION = '3.24';
 
 =head1 Name
 
@@ -378,7 +378,8 @@ free to fork and contribute, or to clone
 C<git://github.com/theory/tap-parser-sourcehandler-pgtap.git> and send
 patches!
 
-Found a bug? Please L<post|http://github.com/theory/pod-site/issues> or
+Found a bug? Please
+L<post|http://github.com/theory/tap-parser-sourcehandler-pgtap/issues> or
 L<email|mailto:bug-tap-parser-sourcehandler-pgtap@rt.cpan.org> a report!
 
 =head1 Author
