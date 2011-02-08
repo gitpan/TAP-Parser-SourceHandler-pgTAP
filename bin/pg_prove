@@ -1,10 +1,10 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/perl -w
 
 use strict;
 use App::Prove;
 use Getopt::Long;
 
-our $VERSION = '3.24';
+our $VERSION = '3.25';
 $|++;
 
 Getopt::Long::Configure(qw(no_ignore_case bundling pass_through));

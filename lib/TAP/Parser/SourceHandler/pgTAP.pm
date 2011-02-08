@@ -9,7 +9,7 @@ use TAP::Parser::Iterator::Process ();
 @ISA = qw(TAP::Parser::SourceHandler);
 TAP::Parser::IteratorFactory->register_handler(__PACKAGE__);
 
-our $VERSION = '3.24';
+our $VERSION = '3.25';
 
 =head1 Name
 
@@ -319,6 +319,12 @@ sub make_iterator {
     if (my $pset = $config->{pset}) {
         while (my ($k, $v) = each %{ $pset }) {
             push @command, '--pset', "$k=$v";
+        }
+    }
+
+    if (my $set = $config->{set}) {
+        while (my ($k, $v) = each %{ $set }) {
+            push @command, '--set', "$k=$v";
         }
     }
 
