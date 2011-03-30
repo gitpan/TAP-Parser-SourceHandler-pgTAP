@@ -4,7 +4,7 @@ use strict;
 use App::Prove;
 use Getopt::Long;
 
-our $VERSION = '3.25';
+our $VERSION = '3.26';
 $|++;
 
 Getopt::Long::Configure(qw(no_ignore_case bundling pass_through));
@@ -84,8 +84,7 @@ $app->process_args(
     } keys %{ $opts->{set} })
 );
 
-exit $app->run ? 0 : 1;
-
+exit($app->run ? 0 : 1);
 
 PGPROVE: {
     package # Hide from indexer.

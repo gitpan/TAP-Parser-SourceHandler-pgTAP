@@ -11,3 +11,4 @@ t/pod.t
 t/source.pg
 t/source_handler.t
 META.yml
+META.json
