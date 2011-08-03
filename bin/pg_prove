@@ -4,7 +4,7 @@ use strict;
 use App::Prove;
 use Getopt::Long;
 
-our $VERSION = '3.26';
+our $VERSION = '3.27';
 $|++;
 
 Getopt::Long::Configure(qw(no_ignore_case bundling pass_through));
@@ -55,7 +55,7 @@ if ($opts->{runtests} || $opts->{schema} || $opts->{match}) {
     # We're just going to call `runtests()`.
     $prove_class .= '::pgTAP';
     my @args;
-    for my $key qw(schema match) {
+    for my $key (qw(schema match)) {
         next unless $opts->{$key};
         (my $arg = $opts->{$key}) =~ s/'/\\'/g;
         # Gotta cast the arguments.
@@ -754,6 +754,6 @@ David E. Wheeler <dwheeler@cpan.org>
 
 =head1 Copyright
 
-Copyright (c) 2008-2010 David E. Wheeler. Some Rights Reserved.
+Copyright (c) 2008-2011 David E. Wheeler. Some Rights Reserved.
 
 =cut
