@@ -5,11 +5,12 @@ use warnings;
 use DBI;
 use DBD::Pg;
 use Getopt::Long;
-our $VERSION = '3.27';
+use File::Spec;
+our $VERSION = '3.28';
 
 Getopt::Long::Configure (qw(bundling));
 
-my $opts = { psql => 'psql', color => 1 };
+my $opts = { psql => 'psql', directory => '.' };
 
 Getopt::Long::GetOptions(
     'dbname|d=s'          => \$opts->{dbname},
@@ -17,6 +18,7 @@ Getopt::Long::GetOptions(
     'host|h=s'            => \$opts->{host},
     'port|p=s'            => \$opts->{port},
     'exclude-schema|N=s@' => \$opts->{exclude_schema},
+    'directory|dir=s'     => \$opts->{directory},
     'verbose|v+'          => \$opts->{verbose},
     'help|H'              => \$opts->{help},
     'man|m'               => \$opts->{man},
@@ -37,6 +39,25 @@ if ($opts->{version}) {
     exit;
 }
 
+# Function to write a test script.
+sub script(&;$) {
+    my ($code, $fn) = @_;
+    my $file = File::Spec->catfile($opts->{directory}, $fn);
+    open my $fh, '>:encoding(UTF-8)', $file or die "Cannot open $file: $!\n";
+    my $orig = select;
+    select $fh;
+    print "SET client_encoding = 'UTF-8';\n",
+          "SET client_min_messages = warning;\n",
+          "CREATE EXTENSION IF NOT EXISTS pgtap;\n",
+          "RESET client_min_messages;\n\n",
+          "BEGIN;\n",
+          "SELECT * FROM no_plan();\n\n";
+    $code->();
+    print "SELECT * FROM finish();\nROLLBACK;\n";
+    close $fh or die "Error closing $file: $!\n";
+    select $orig;
+}
+
 my @conn;
 for (qw(host port dbname)) {
     push @conn, "$_=$opts->{$_}" if defined $opts->{$_};
@@ -45,23 +66,26 @@ my $dsn = 'dbi:Pg';
 $dsn .= ':' . join ';', @conn if @conn;
 
 my $dbh = DBI->connect($dsn, $opts->{username}, undef, {
-    RaiseError => 1,
-    PrintError => 0,
-    AutoCommit => 1,
+    RaiseError     => 1,
+    PrintError     => 0,
+    AutoCommit     => 1,
+    pg_enable_utf8 => 1,
 });
+$dbh->do(q{SET client_encoding = 'UTF-8'});
 
-print "SELECT * FROM no_plan();\n\n";
-if (my @schemas = get_schemas($opts->{exclude_schema})) {
-    schemas_are(\@schemas);
-    for my $schema (@schemas) {
-        tables_are($schema);
-        views_are($schema);
-        sequences_are($schema);
-        functions_are($schema);
+##############################################################################
+
+script {
+    if (my @schemas = get_schemas($opts->{exclude_schema})) {
+        schemas_are(\@schemas);
+        for my $schema (@schemas) {
+            tables_are($schema);
+            views_are($schema);
+            sequences_are($schema);
+            functions_are($schema);
+        }
     }
-}
-
-print "SELECT * FROM finish();\n";
+} 'schema.sql';
 
 ##############################################################################
 
@@ -83,9 +107,9 @@ sub get_schemas {
 
 sub schemas_are {
     my $schemas = shift;
-    print "SELECT schemas_are( ARRAY[\n    '",
+    print "SELECT schemas_are(ARRAY[\n    '",
         join("',\n    '", @$schemas),
-        "'\n] );\n\n" if @$schemas;
+        "'\n]);\n\n" if @$schemas;
 }
 
 sub get_rels {
@@ -103,28 +127,32 @@ sub get_rels {
 sub tables_are {
     my $schema = shift;
     my $tables = get_rels(r => $schema);
-    return unless $tables && @$tables;
-    print "SELECT tables_are( '$schema', ARRAY[\n    '",
+    return unless $tables && @{ $tables };
+    print "SELECT tables_are('$schema', ARRAY[\n    '",
         join("',\n    '", @$tables),
-        "'\n] );\n\n";
+        "'\n]);\n\n";
+
+    for my $table (@{ $tables }) {
+        script { has_table($schema, $table) } "table_$schema.$table.sql";
+    }
 }
 
 sub views_are {
     my $schema = shift;
     my $tables = get_rels(v => $schema);
     return unless $tables && @$tables;
-    print "SELECT views_are( '$schema', ARRAY[\n    '",
+    print "SELECT views_are('$schema', ARRAY[\n    '",
         join("',\n    '", @$tables),
-        "'\n] );\n\n";
+        "'\n]);\n\n";
 }
 
 sub sequences_are {
     my $schema = shift;
     my $tables = get_rels(S => $schema);
     return unless $tables && @$tables;
-    print "SELECT sequences_are( '$schema', ARRAY[\n    '",
+    print "SELECT sequences_are('$schema', ARRAY[\n    '",
         join("',\n    '", @$tables),
-        "'\n] );\n\n";
+        "'\n]);\n\n";
 }
 
 sub functions_are {
@@ -137,9 +165,83 @@ sub functions_are {
     });
     my $funcs = $dbh->selectcol_arrayref($sth, undef, $schema);
     return unless $funcs && @$funcs;
-    print "SELECT functions_are( '$schema', ARRAY[\n    '",
+    print "SELECT functions_are('$schema', ARRAY[\n    '",
         join("',\n    '", @$funcs),
-        "'\n] );\n\n";
+        "'\n]);\n\n";
+}
+
+sub has_table {
+    my ($schema, $table) = @_;
+    print "SELECT has_table(
+    '$schema', '$table',
+    'Should have table $schema.$table'
+);\n\n";
+    has_pk($schema, $table);
+    columns_are($schema, $table);
+}
+
+sub has_pk {
+    my ($schema, $table) = @_;
+    my $fn = _hasc($schema, $table, 'p') ? 'has_pk' : 'hasnt_pk';
+    print "select $fn(
+    '$schema', '$table',
+    'Table $schema.$table should have a primary key'
+);\n\n";
+}
+
+sub columns_are {
+    my ($schema, $table) = @_;
+    print "SET search_path = '$schema';\n";
+    my $cols = $dbh->selectall_arrayref(q{
+        SELECT a.attname AS name
+             , pg_catalog.format_type(a.atttypid, a.atttypmod) AS type
+             , a.attnotnull AS not_null
+             , a.atthasdef  AS has_default
+             , pg_catalog.pg_get_expr(d.adbin, d.adrelid)
+          FROM pg_catalog.pg_namespace n
+          JOIN pg_catalog.pg_class c ON n.oid = c.relnamespace
+          JOIN pg_catalog.pg_attribute a ON c.oid = a.attrelid
+          LEFT JOIN pg_catalog.pg_attrdef d ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+         WHERE n.nspname = ?
+           AND c.relname = ?
+           AND a.attnum > 0
+           AND NOT a.attisdropped
+         ORDER BY a.attnum
+    }, undef, $schema, $table);
+
+    return unless $cols && @{ $cols };
+    print "SELECT columns_are('$schema', '$table', ARRAY[\n    '",
+        join("',\n    '", map { $_->[0] } @{ $cols }),
+        "'\n]);\n\n";
+
+    for my $col (@{ $cols }) {
+        my $null_fn = $col->[2] ? 'col_not_null(' : 'col_is_null( ';
+        my $def_fn = $col->[3] ? 'col_has_default(  ' : 'col_hasnt_default(';
+        print "SELECT has_column(       '$table', '$col->[0]');\n",
+              "SELECT col_type_is(      '$table', '$col->[0]', '$col->[1]');\n",
+              "SELECT $null_fn     '$table', '$col->[0]');\n",
+              "SELECT $def_fn'$table', '$col->[0]');\n";
+        print "SELECT col_default_is(   '$table', '$col->[0]', '$col->[4]');\n"
+            if $col->[3];
+        print $/;
+    }
+
+}
+
+sub _hasc {
+    my $sth = $dbh->prepare_cached(q{
+        SELECT EXISTS(
+            SELECT true
+              FROM pg_catalog.pg_namespace n
+              JOIN pg_catalog.pg_class c      ON c.relnamespace = n.oid
+              JOIN pg_catalog.pg_constraint x ON c.oid = x.conrelid
+             WHERE c.relhaspkey = true
+               AND n.nspname = ?
+               AND c.relname = ?
+               AND x.contype = ?
+        )
+    });
+    return $dbh->selectcol_arrayref($sth, undef, @_)->[0];
 }
 
 __END__
@@ -174,6 +276,7 @@ distribution in the future.
   -p --port PORT            Port to which to connect.
   -v --verbose              Display output of test scripts while running them.
   -N --exclude-schema       Exclude a schema from the generated tests.
+     --directory DIRECTORY  Directory to which to write the test files.
   -H --help                 Print a usage statement and exit.
   -m --man                  Print the complete documentation and exit.
   -V --version              Print the version number and exit.
@@ -226,6 +329,12 @@ Specifies the TCP port or the local Unix-domain socket file extension on which
 the server is listening for connections. Defaults to the value of the
 C<$PGPORT> environment variable or, if not set, to the port specified at
 compile time, usually 5432.
+
+=item C<--dir>
+
+=item C<--directory>
+
+Directory to which to write test files. Defaults to the current directory.
 
 =item C<-v>
 
@@ -287,6 +396,6 @@ David E. Wheeler <dwheeler@cpan.org>
 
 =head1 Copyright
 
-Copyright (c) 2009-2011 David E. Wheeler. Some Rights Reserved.
+Copyright (c) 2009-2012 David E. Wheeler. Some Rights Reserved.
 
 =cut
