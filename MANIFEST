@@ -10,6 +10,5 @@ README
 t/bin/psql
 t/pod-coverage.t
 t/pod.t
-t/scripts/psql
 t/source.pg
 t/source_handler.t
