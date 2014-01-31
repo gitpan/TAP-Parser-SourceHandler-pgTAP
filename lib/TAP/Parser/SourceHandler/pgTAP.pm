@@ -9,7 +9,7 @@ use TAP::Parser::Iterator::Process ();
 @ISA = qw(TAP::Parser::SourceHandler);
 TAP::Parser::IteratorFactory->register_handler(__PACKAGE__);
 
-our $VERSION = '3.29';
+our $VERSION = '3.30';
 
 =head1 Name
 
@@ -308,7 +308,6 @@ sub make_iterator {
       --quiet
       --pset pager=
       --pset tuples_only=true
-      --set ON_ERROR_ROLLBACK=1
       --set ON_ERROR_STOP=1
     );
 
@@ -394,7 +393,7 @@ David E. Wheeler <dwheeler@cpan.org>
 
 =head1 Copyright and License
 
-Copyright (c) 2010-2012 David E. Wheeler. Some Rights Reserved.
+Copyright (c) 2010-2014 David E. Wheeler. Some Rights Reserved.
 
 This module is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.

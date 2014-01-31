@@ -4,7 +4,7 @@ use strict;
 use App::Prove;
 use Getopt::Long;
 
-our $VERSION = '3.29';
+our $VERSION = '3.30';
 $|++;
 
 Getopt::Long::Configure(qw(no_ignore_case bundling pass_through));
@@ -191,25 +191,25 @@ schema and I<ending> with “test,” run the tests like so:
 
 =head1 Options
 
- -b   --psql-bin PSQL        Location of the C<psql> client.
+ -b   --psql-bin PSQL        Location of the psql client.
  -d,  --dbname DBNAME        Database to which to connect.
  -U,  --username USERNAME    User with which to connect.
  -h,  --host HOST            Host to which to connect.
  -p,  --port PORT            Port to which to connect.
  -P,  --pset OPTION=VALUE    Set psql key/value printing option.
  -S,  --set VAR=VALUE        Set variables for psql session.
- -R   --runtests             Run xUnit test using C<runtests()>.
+ -R   --runtests             Run xUnit test using runtests().
  -s,  --schema SCHEMA        Schema in which to find xUnit tests.
  -x,  --match REGEX          Regular expression to find xUnit tests.
 
-      --ext                  Set the extension for tests (default F<.pg>)
+      --ext                  Set the extension for tests (default .pg)
  -r,  --recurse              Recursively descend into directories.
       --ignore-exit          Ignore exit status from test scripts.
-      --trap                 Trap C<Ctrl-C> and print summary on interrupt.
+      --trap                 Trap Ctrl-C and print summary on interrupt.
       --harness              Define test harness to use.
  -j,  --jobs N               Run N test jobs in parallel (try 9.)
       --rc RCFILE            Process options from rcfile
-      --norc                 Don't process default F<.proverc>
+      --norc                 Don't process default .proverc
       --state OPTION=VALUE   Set persistent state options.
 
  -v,  --verbose              Print all test lines.
@@ -221,7 +221,7 @@ schema and I<ending> with “test,” run the tests like so:
       --parse                Show full list of TAP parse errors, if any.
       --normalize            Normalize TAP output in verbose output
  -D   --dry                  Dry run. Show test that would have run.
-      --merge                Merge test scripts' C<STDERR> and C<STDOUT>.
+      --merge                Merge test scripts' STDERR and STDOUT.
  -t   --timer                Print elapsed time after each test.
  -c,  --color                Colored test output (default).
       --nocolor              Do not color test output.
@@ -433,7 +433,7 @@ Run N test jobs in parallel (try 9.)
 Process options from the specified configuration file.
 
 If C<--rc> is not specified and F<./.proverc> or F<~/.proverc> exist, they
-will be read and any options they contain processed before the command line
+will be read and the options they contain processed before the command line
 options. Options in configuration files are specified in the same way as
 command line options:
 
@@ -443,6 +443,11 @@ command line options:
 
 Under Windows and VMS the option file is named F<_proverc> rather than
 F<.proverc> and is sought only in the current directory.
+
+Due to how options are loaded you cannot use F<.proverc> for
+C<pg_prove>-specific options, only C<prove> options. However, <pg_prove> does
+support all of the usual libpq
+L<Environment Variables|http://www.postgresql.org/docs/current/static/libpq-envars.html>.
 
 =item C<--norc>
 
@@ -756,6 +761,6 @@ David E. Wheeler <dwheeler@cpan.org>
 
 =head1 Copyright
 
-Copyright (c) 2008-2012 David E. Wheeler. Some Rights Reserved.
+Copyright (c) 2008-2014 David E. Wheeler. Some Rights Reserved.
 
 =cut
